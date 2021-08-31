@@ -1,0 +1,29 @@
+import numpy as np
+import pandas as pd
+from collections import defaultdict
+
+dt = pd.read_csv(r"asx.csv", encoding = 'ISO-8859-1', header = 1)
+sectors = set(list(dt["Sector"]))
+sort = dt.groupby(["Sector", "Weight(%)", "Market Cap","Company"]).size()
+df = pd.DataFrame(sort)
+df = df.reset_index()
+df = df.iloc[:,[0,1,2]]
+df.to_csv("asx_sectors.csv")
+
+sectors = set(list(dt["Sector"]))
+weights = defaultdict(int)
+for num in list(range(2210)):
+    weights[dt.iloc[num,2]] += dt.iloc[num,4]
+
+w = list(weights.values())
+sectors = list(weights.items())
+w = sorted(w, reverse = True)
+
+lists = []
+for num in w:
+    for sector in sectors:
+        if sector[1] == num:
+            lists.append((sector[0], sector[1]))
+sect = pd.DataFrame(lists)
+sect.columns = ['Sector', 'Percentage']
+sect
