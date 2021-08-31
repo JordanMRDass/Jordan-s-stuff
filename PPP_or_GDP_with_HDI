@@ -1,0 +1,57 @@
+import pandas as pd
+import numpy as np
+import re
+import matplotlib.pyplot as plt
+from collections import defaultdict
+
+dt = pd.read_csv("Country_details.csv")
+
+PPP = []
+GDP = []
+
+trillion = 1000000000000 
+billion = 1000000000
+million = 1000000
+
+for n in range(len(dt)):
+    s = dt.iloc[n, 7]
+    number = re.findall('[0-9.]+', s)
+    number = float(number[0])
+    zero = re.findall('[A-Za-z]+', s)
+    zero = str(zero[0])
+    
+    if zero == 'trillion':
+        zero = trillion
+    elif zero == 'billion':
+        zero = billion
+    elif zero == 'million':
+        zero = million
+    
+    ppp = number * zero
+    PPP.append(ppp)
+
+dt['PPP'] = PPP
+
+for n in range(len(dt)):
+    s = dt.iloc[n, 8]
+    number = re.findall('[0-9.]+', s)
+    number = float(number[0])
+    zero = re.findall('[A-Za-z]+', s)
+    zero = str(zero[0])
+    
+    if zero == 'trillion':
+        zero = trillion
+    elif zero == 'billion':
+        zero = billion
+    elif zero == 'million':
+        zero = million
+    
+    gdp = number * zero
+    GDP.append(gdp)
+dt['GDP'] = GDP
+
+ax = dt.plot(x='PPP',y='HDI(ranking out of 1)',kind='scatter',figsize=(10,10))
+dt[['PPP','HDI(ranking out of 1)','Country']].apply(lambda x: ax.text(*x),axis=1)
+
+ax = dt.plot(x='GDP',y='HDI(ranking out of 1)',kind='scatter',figsize=(10,10))
+dt[['GDP','HDI(ranking out of 1)','Country']].apply(lambda x: ax.text(*x),axis=1)
