@@ -1,0 +1,236 @@
+import requests
+from bs4 import BeautifulSoup
+import re
+from collections import defaultdict
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+middle_east = ["Azerbaijan","Malawi","Singapore","Malaysia","Turkey",'Libya','Egypt','Sudan','Saudi Arabia','United Arab Emirates','Jordan','Israel','Iran','Iraq','Cyprus','Afghanistan','Syria','Lebanon','Israel','Bahrain','Qatar','Oman','Yemen']
+
+indicators = ['Ethnic group','Capital','languages','Presidential system','President','PPP','nominal','Human Development Index','Currency','Vice President','Religion']
+
+Country_list = []
+Capital_list = []
+Largest_city_list = []
+Ethnicity_list = []
+Spoken_languages_list = []
+Presidential_system_list = []
+President_list = []
+Prime_minister_list = []
+Vice_President_list = []
+PPP_list = []
+GDP_list = []
+HDI_list = []
+Currency_list = []
+Religion_list = []
+
+for country in middle_east:
+    
+    Country_list.append(country)
+    
+    url = "https://en.wikipedia.org/wiki/" + country
+    response = requests.get(url=url,)
+
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    content = soup.find(class_ = "infobox geography vcard")
+    data_row = content.find_all(class_ = "infobox-data")
+    
+    tr_raw = content.find_all("tr")
+                
+    num = 0
+    
+    category_check = []
+    
+    num_president = 0
+    
+    num_vice_president = 0
+    
+    num_prime = 0
+    
+    for tr in tr_raw:
+        th = tr.find_all("th")
+        td = tr.find_all("td")
+        th = str(th)
+        category = re.findall('Ethnic group|>Official languages<|>Capital<|>Official\xa0languages<|>Presidential system<|>President<|>PPP<|nominal|Human Development Index|>Currency<|>Vice President<|Religion|>Prime Minister<|>Vice-President<',th)
+        
+        if category != []:
+            combined_pat = r'|'.join(('\>', '\<'))
+            category[0] = re.sub(combined_pat,'',category[0])
+            space_pat = '\xa0'
+            category[0] = re.sub(space_pat,' ',category[0])
+            category_check.append(category[0])
+            
+        th = str(th)
+        td = str(td)
+        
+        if 'Official languages' in category:
+            sl_list = []
+            spoken_languages = re.findall('[A-Za-z]+</a>', td)
+            for sla in spoken_languages:
+                sl = re.sub('</a>','',sla)
+                sl_list.append(sl)
+            Spoken_languages_list.append(str(sl_list))
+            print(category)
+            print(Spoken_languages_list)
+            print('')
+        
+        elif 'Capital' in category:
+            capital = re.findall('>[A-Z\u00C0-\u024F][a-zA-Z\u00C0-\u024F ,.]+<', td)
+            capital = re.sub(combined_pat,'',capital[0])
+            Capital_list.append(capital)
+            print(category)
+            print(Capital_list)
+            print('')
+            
+        elif 'Ethnic group' in category:
+            e_list = []
+            ethnic_groups = re.findall('>[A-Za-z ]+<', td)
+            for e in ethnic_groups:
+                el = re.sub(combined_pat,'',e)
+                if el != ' ':
+                    e_list.append(el)
+            Ethnicity_list.append(str(e_list))
+            print(category)
+            print(Ethnicity_list)
+            print('')
+            
+        elif 'President' in category:
+            if num_president == 0:
+                print(td)
+                president = re.findall('>[A-Z\u00C0-\u024F-][a-zA-Z\u00C0-\u024F -]*<', td)
+                president = re.sub(combined_pat,'',president[0])
+                President_list.append(president)
+                print(category)
+                print(country, President_list)
+                print('')
+                num_president += 1
+                
+        elif 'Prime Minister' in category:
+            if num_prime == 0:
+                president = re.findall('>[A-Z\u00C0-\u024F-][a-zA-Z\u00C0-\u024F -]*<', td)
+                president = re.sub(combined_pat,'',president[0])
+                Prime_minister_list.append(president)
+                print(category)
+                print(country, Prime_minister_list)
+                print('')
+                num_prime += 1            
+            
+        elif 'Vice President' in category or 'Vice-President' in category:
+            if num_vice_president == 0:
+                print(td)
+                vice_president = re.findall('>[A-Z\u00C0-\u024F-][a-zA-Z\u00C0-\u024F -]*<', td)
+                vice_president = re.sub(combined_pat,'',vice_president[0])
+                Vice_President_list.append(vice_president)
+                print(category)
+                print(Vice_President_list)
+                print('')
+                num_vice_president += 1
+            
+        elif 'PPP' in category:
+            td = tr_raw[num + 1].find_all("td")
+            td = str(td)
+            ppp = re.findall('\$[0-9\.,]+', td)
+            zero = re.findall('trillion|billion|million', td)
+            PPP_list.append(ppp[0]+' '+zero[0])
+            print(category)
+            print(PPP_list)
+            print('')
+            
+        elif 'nominal' in category:
+            td = tr_raw[num + 1].find_all("td")
+            td = str(td)
+            gdp = re.findall('\$[0-9\.,]+', td)
+            zero = re.findall('trillion|billion|million', td)
+            GDP_list.append(gdp[0]+' '+zero[0])
+            print(category)
+            print(GDP_list)
+            print('')
+        
+        elif 'Human Development Index' in category:
+            hdi = re.findall('0\.[0-9]+\<', td)
+            hdi = re.sub('>','',hdi[0])
+            hdi = re.sub('<','',hdi)
+            HDI_list.append(hdi)
+            print(category)
+            print(HDI_list)
+            print('')
+            
+        elif 'Currency' in category:
+            currency = re.findall('"[A-Z\u00C0-\u024F][a-zA-Z\u00C0-\u024F ]*"', td)
+            currency = re.sub('"','',currency[0])
+            Currency_list.append(currency)
+            print(category)
+            print(Currency_list)
+            print('')
+            
+        elif 'Religion' in category:
+            r_list = []
+            religion = re.findall('>[A-Za-z ]+<', td)
+            percentage = re.findall('>[0-9.]+% <',td)
+            if religion != []:
+                if percentage != []:
+                    for n in range(len(percentage)):
+                        if religion[n].lower() != '>official<':
+                            r = re.sub(combined_pat,'',religion[n])
+                            p = re.sub(combined_pat,'',percentage[n])
+                            religion_percentage = str(p) + str(r)
+                            r_list.append(religion_percentage)
+                        elif religion[n].lower() == '>official<':
+                            r = re.sub(combined_pat,'',religion[n + 1])
+                            p = re.sub(combined_pat,'',percentage[n])
+                            religion_percentage = str(p) + str(r)
+                            r_list.append(religion_percentage)
+                elif percentage == []:
+                    for r in religion:
+                        r = re.sub(combined_pat,'',r)
+                        if r != 'official':
+                            r_list.append(r)
+            Religion_list.append(str(r_list))
+            print(category)
+            print(Religion_list)
+            print('')
+            
+        num += 1
+
+    print(country, category_check)
+    if 'Capital' not in category_check:
+        Capital_list.append(None)
+    if 'Ethnic group' not in category_check:
+        Ethnicity_list.append(None)
+    if 'Official languages' not in category_check:
+        Spoken_languages_list.append(None)
+    if 'President' not in category_check:
+        President_list.append(None)
+    if 'Prime Minister' not in category_check:
+        Prime_minister_list.append(None)
+    if 'Vice President' not in category_check and 'Vice-President' not in category_check:
+        Vice_President_list.append(None)
+    if 'PPP' not in category_check:
+        PPP_list.append(None)
+    if 'nominal' not in category_check:
+        GDP_list.append(None)
+    if 'Human Development Index' not in category_check:
+        HDI_list.append(None)
+    if 'Currency' not in category_check:
+        Currency_list.append(None)
+    if 'Religion' not in category_check:
+        Religion_list.append(None)
+                
+print(len(Country_list))
+print(len(Capital_list))
+print(len(Ethnicity_list))
+print(len(Spoken_languages_list))
+print(len(President_list))
+print(len(Vice_President_list))
+print(len(PPP_list))
+print(len(GDP_list))
+print(len(HDI_list))
+print(len(Currency_list))
+print(len(Religion_list))
+print(len(Prime_minister_list))
+
+Country_details = pd.DataFrame({'Country':Country_list, 'Capital city':Capital_list, 'Ethnicities':Ethnicity_list, 'Official languages':Spoken_languages_list, 'Presidents':President_list, 'Prime Ministers':Prime_minister_list, 'Vice Presidents':Vice_President_list, 'GDP(PPP)':PPP_list, 'GDP(nominal)':GDP_list, 'HDI(ranking out of 1)':HDI_list, 'Currencies':Currency_list, 'Religions':Religion_list})
+Country_details.to_csv('Country_details.csv')
